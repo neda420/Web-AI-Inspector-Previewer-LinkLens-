@@ -49,8 +49,9 @@ create table public.ai_summaries (
   model text not null,
   summary text not null,
   safety_flags jsonb not null default '{}'::jsonb,
-  confidence numeric(4,3),
+  confidence numeric(4,3) check (confidence between 0 and 1),
   created_at timestamptz not null default now(),
+  -- for MVP keep one active summary per URL; remove this unique constraint if you want summary history per model/run
   unique (url_id)
 );
 
@@ -103,10 +104,14 @@ import { NextRequest, NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 
 const MAX_HTML_BYTES = 1_000_000;
+const FETCH_TIMEOUT_MS = 9_000;
+const MAX_BODY_CHARS = 6_000;
 
 function normalizeUrl(input: string) {
   const u = new URL(input.trim());
-  if (!["http:", "https:"].includes(u.protocol)) throw new Error("Only http/https URLs are supported.");
+  if (!["http:", "https:"].includes(u.protocol)) {
+    throw new Error(`Unsupported protocol: ${u.protocol}. Only http/https URLs are supported.`);
+  }
   u.hash = "";
   u.hostname = u.hostname.toLowerCase();
   return u.toString();
@@ -117,12 +122,13 @@ function extractText(html: string) {
   $("script, style, noscript").remove();
   const title = $("title").first().text().trim();
   const description = $("meta[name='description']").attr("content")?.trim() ?? "";
-  const body = $("body").text().replace(/\s+/g, " ").trim().slice(0, 6000);
+  // Keep body input bounded to reduce token usage and keep summaries fast/cost-effective.
+  const body = $("body").text().replace(/\s+/g, " ").trim().slice(0, MAX_BODY_CHARS);
   return { title, description, body };
 }
 
 async function summarizeWithAI(payload: { title: string; description: string; body: string }) {
-  // Replace with OpenAI/Anthropic SDK server call
+  // TODO: Replace with OpenAI/Anthropic SDK server call.
   // Must return exactly 2 concise sentences about what user gets on the page.
   return `This page appears to provide ${payload.title || "information"} with content focused on ${payload.description || "the page topic"}. You should expect reading-oriented content and links related to that subject.`;
 }
@@ -133,7 +139,7 @@ export async function POST(req: NextRequest) {
     const normalizedUrl = normalizeUrl(url);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 9000);
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     const response = await fetch(normalizedUrl, {
       signal: controller.signal,
