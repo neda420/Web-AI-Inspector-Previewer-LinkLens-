@@ -23,7 +23,7 @@ create table if not exists public.ai_summaries (
   model text not null,
   summary text not null,
   safety_flags jsonb not null default '{}'::jsonb,
-  confidence numeric(3, 3) check (confidence between 0 and 1),
+  confidence numeric(4, 3) check (confidence between 0 and 1),
   created_at timestamptz not null default now(),
   unique (url_id)
 );
