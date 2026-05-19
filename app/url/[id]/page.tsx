@@ -11,7 +11,7 @@ type UrlPageProps = {
 
 export default async function UrlPage({ params }: UrlPageProps) {
   const { id } = await params;
-  const data = getUrlWithScores(id);
+  const data = await getUrlWithScores(id);
 
   if (!data) {
     notFound();
