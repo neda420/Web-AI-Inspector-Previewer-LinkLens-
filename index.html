@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkLens</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: #0b1220;
+        color: #e5e7eb;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+      main {
+        max-width: 760px;
+        padding: 32px 20px;
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 4vw, 40px);
+      }
+      p {
+        margin: 0 0 16px;
+        line-height: 1.6;
+        color: #cbd5e1;
+      }
+      .links {
+        margin-top: 28px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      a {
+        text-decoration: none;
+        color: #0b1220;
+        background: #93c5fd;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      a.secondary {
+        background: transparent;
+        color: #93c5fd;
+        border: 1px solid #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>LinkLens (Web AI Inspector & Previewer)</h1>
+      <p>
+        The project site is online. This GitHub Pages homepage replaces the previous markdown-only
+        landing page.
+      </p>
+      <p>
+        LinkLens application features use server routes, so the full app should be deployed on a
+        server-capable platform.
+      </p>
+      <div class="links">
+        <a href="https://github.com/neda420/Web-AI-Inspector-Previewer-LinkLens-#readme">Read the docs</a>
+        <a class="secondary" href="https://github.com/neda420/Web-AI-Inspector-Previewer-LinkLens-"
+          >View source</a
+        >
+      </div>
+    </main>
+  </body>
+</html>
