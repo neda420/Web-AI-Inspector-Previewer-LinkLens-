@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const summary = await summarizeWithAI(extracted);
     const safetyFlags = classifySafety(extracted);
 
-    const record = upsertUrlRecord({
+    const record = await upsertUrlRecord({
       normalizedUrl,
       title: extracted.title,
       description: extracted.description,

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "urlId is required" }, { status: 400 });
   }
 
-  return NextResponse.json({ reviews: listReviews(urlId) });
+  return NextResponse.json({ reviews: await listReviews(urlId) });
 }
 
 export async function POST(req: NextRequest) {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const rating = Number(body?.rating);
     const text = typeof body?.text === "string" ? body.text.trim() : "";
 
-    if (!urlId || !getUrlById(urlId)) {
+    if (!urlId || !(await getUrlById(urlId))) {
       return NextResponse.json({ error: "Valid urlId is required." }, { status: 400 });
     }
     if (!userName) {
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Rating must be between 1 and 5." }, { status: 400 });
     }
 
-    const review = saveReview({ urlId, userName, rating, text });
+    const review = await saveReview({ urlId, userName, rating, text });
     return NextResponse.json(review);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to save review.";
