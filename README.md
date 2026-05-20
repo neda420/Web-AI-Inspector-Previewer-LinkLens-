@@ -44,8 +44,8 @@ Use the included GitHub Actions workflow to deploy to Vercel on every push to `m
    - `VERCEL_TOKEN`
    - `VERCEL_ORG_ID`
    - `VERCEL_PROJECT_ID`
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_URL` *(only if your deployed branch uses Supabase)*
+   - `SUPABASE_ANON_KEY` *(only if your deployed branch uses Supabase)*
 4. Push to `main` (or manually run the workflow) to deploy.
 
-If `SUPABASE_URL` and `SUPABASE_ANON_KEY` are missing, your deployed app will fail when the Supabase-backed store is enabled.
+If your deployed branch includes Supabase-backed storage, missing `SUPABASE_URL` and `SUPABASE_ANON_KEY` will cause runtime errors.
