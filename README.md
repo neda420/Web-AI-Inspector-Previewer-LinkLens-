@@ -31,6 +31,17 @@ Open `http://localhost:3000`.
 - Trust score display (70% community + 30% AI safety bucket)
 - Supabase starter migration at `supabase/migrations/001_init.sql`
 
-## Important deployment note
+## Deploy with GitHub Actions (Vercel)
 
-This app uses server routes (`/api/*`) and should be deployed to a server-capable platform (for example Vercel). GitHub Pages cannot run these API routes.
+This app uses server routes (`/api/*`), so GitHub Pages cannot run it.
+Use the included GitHub Actions workflow to deploy to Vercel on every push to `main`.
+
+1. In Vercel, import this repository and copy:
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+2. Create a Vercel token (`VERCEL_TOKEN`).
+3. In GitHub repository **Settings → Secrets and variables → Actions**, add:
+   - `VERCEL_TOKEN`
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+4. Push to `main` (or manually run the workflow) to deploy.
