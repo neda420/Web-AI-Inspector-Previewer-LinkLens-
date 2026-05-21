@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, hasSupabaseConfig } from "@/lib/supabase";
 import { computeTrustScore } from "@/lib/trust-score";
 import type { Review, SafetyFlags, UrlRecord, UrlWithScores } from "@/lib/types";
 
@@ -21,6 +21,10 @@ interface ReviewRow {
   created_at: string;
   updated_at: string;
 }
+
+const memoryUrlRecordsById = new Map<string, UrlRecord>();
+const memoryUrlIdByNormalized = new Map<string, string>();
+const memoryReviewsByUrlId = new Map<string, Map<string, Review>>();
 
 function rowToUrlRecord(row: UrlRecordRow): UrlRecord {
   return {
@@ -47,6 +51,42 @@ function rowToReview(row: ReviewRow): Review {
 }
 
 export async function upsertUrlRecord(input: Omit<UrlRecord, "id" | "createdAt">): Promise<UrlRecord> {
+  if (!hasSupabaseConfig()) {
+    const now = new Date().toISOString();
+    const existingId = memoryUrlIdByNormalized.get(input.normalizedUrl);
+
+    if (existingId) {
+      const existing = memoryUrlRecordsById.get(existingId);
+      if (existing) {
+        const updated: UrlRecord = {
+          ...existing,
+          normalizedUrl: input.normalizedUrl,
+          title: input.title,
+          description: input.description,
+          summary: input.summary,
+          safetyFlags: input.safetyFlags,
+        };
+        memoryUrlRecordsById.set(existingId, updated);
+        return updated;
+      }
+    }
+
+    const id = crypto.randomUUID();
+    const created: UrlRecord = {
+      id,
+      normalizedUrl: input.normalizedUrl,
+      title: input.title,
+      description: input.description,
+      summary: input.summary,
+      safetyFlags: input.safetyFlags,
+      createdAt: now,
+    };
+
+    memoryUrlRecordsById.set(id, created);
+    memoryUrlIdByNormalized.set(input.normalizedUrl, id);
+    return created;
+  }
+
   const { data, error } = await getSupabase()
     .from("url_records")
     .upsert(
@@ -67,12 +107,22 @@ export async function upsertUrlRecord(input: Omit<UrlRecord, "id" | "createdAt">
 }
 
 export async function getUrlById(id: string): Promise<UrlRecord | null> {
+  if (!hasSupabaseConfig()) {
+    return memoryUrlRecordsById.get(id) ?? null;
+  }
+
   const { data, error } = await getSupabase().from("url_records").select().eq("id", id).single();
   if (error || !data) return null;
   return rowToUrlRecord(data);
 }
 
 export async function listReviews(urlId: string): Promise<Review[]> {
+  if (!hasSupabaseConfig()) {
+    const reviewsForUrl = memoryReviewsByUrlId.get(urlId);
+    if (!reviewsForUrl) return [];
+    return Array.from(reviewsForUrl.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
   const { data, error } = await getSupabase()
     .from("url_reviews")
     .select()
@@ -90,6 +140,37 @@ export async function saveReview(input: {
 }): Promise<Review> {
   if (input.rating < 1 || input.rating > 5) {
     throw new Error("Rating must be between 1 and 5.");
+  }
+
+  if (!hasSupabaseConfig()) {
+    if (!memoryUrlRecordsById.has(input.urlId)) {
+      throw new Error("Valid urlId is required.");
+    }
+
+    const now = new Date().toISOString();
+    const urlReviews = memoryReviewsByUrlId.get(input.urlId) ?? new Map<string, Review>();
+    const existing = urlReviews.get(input.userName);
+
+    const review: Review = existing
+      ? {
+          ...existing,
+          rating: input.rating,
+          text: input.text,
+          updatedAt: now,
+        }
+      : {
+          id: crypto.randomUUID(),
+          urlId: input.urlId,
+          userName: input.userName,
+          rating: input.rating,
+          text: input.text,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+    urlReviews.set(input.userName, review);
+    memoryReviewsByUrlId.set(input.urlId, urlReviews);
+    return review;
   }
 
   const { data, error } = await getSupabase()
