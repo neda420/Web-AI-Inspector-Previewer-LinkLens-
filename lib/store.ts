@@ -25,6 +25,30 @@ interface ReviewRow {
 const memoryUrlRecordsById = new Map<string, UrlRecord>();
 const memoryUrlIdByNormalized = new Map<string, string>();
 const memoryReviewsByUrlId = new Map<string, Map<string, Review>>();
+const MAX_MEMORY_URL_RECORDS = 200;
+const MAX_MEMORY_REVIEWS_PER_URL = 200;
+
+function trimMemoryUrlRecords() {
+  while (memoryUrlRecordsById.size > MAX_MEMORY_URL_RECORDS) {
+    const oldestId = memoryUrlRecordsById.keys().next().value;
+    if (!oldestId) break;
+    const oldest = memoryUrlRecordsById.get(oldestId);
+    memoryUrlRecordsById.delete(oldestId);
+    if (oldest) {
+      memoryUrlIdByNormalized.delete(oldest.normalizedUrl);
+    }
+    memoryReviewsByUrlId.delete(oldestId);
+  }
+}
+
+function trimMemoryReviews(urlId: string, reviews: Map<string, Review>) {
+  while (reviews.size > MAX_MEMORY_REVIEWS_PER_URL) {
+    const oldestUser = reviews.keys().next().value;
+    if (!oldestUser) break;
+    reviews.delete(oldestUser);
+  }
+  memoryReviewsByUrlId.set(urlId, reviews);
+}
 
 function rowToUrlRecord(row: UrlRecordRow): UrlRecord {
   return {
@@ -66,6 +90,7 @@ export async function upsertUrlRecord(input: Omit<UrlRecord, "id" | "createdAt">
           summary: input.summary,
           safetyFlags: input.safetyFlags,
         };
+        memoryUrlRecordsById.delete(existingId);
         memoryUrlRecordsById.set(existingId, updated);
         return updated;
       }
@@ -84,6 +109,7 @@ export async function upsertUrlRecord(input: Omit<UrlRecord, "id" | "createdAt">
 
     memoryUrlRecordsById.set(id, created);
     memoryUrlIdByNormalized.set(input.normalizedUrl, id);
+    trimMemoryUrlRecords();
     return created;
   }
 
@@ -120,7 +146,9 @@ export async function listReviews(urlId: string): Promise<Review[]> {
   if (!hasSupabaseConfig()) {
     const reviewsForUrl = memoryReviewsByUrlId.get(urlId);
     if (!reviewsForUrl) return [];
-    return Array.from(reviewsForUrl.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Array.from(reviewsForUrl.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }
 
   const { data, error } = await getSupabase()
@@ -168,8 +196,11 @@ export async function saveReview(input: {
           updatedAt: now,
         };
 
+    if (existing) {
+      urlReviews.delete(input.userName);
+    }
     urlReviews.set(input.userName, review);
-    memoryReviewsByUrlId.set(input.urlId, urlReviews);
+    trimMemoryReviews(input.urlId, urlReviews);
     return review;
   }
 
