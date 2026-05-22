@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LinkLens",
-  description: "Web AI Inspector & Previewer",
+  title: "LinkLens • AI Website Inspector",
+  description:
+    "Inspect links before you open them. LinkLens previews page content, safety signals, and community trust in one place.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
