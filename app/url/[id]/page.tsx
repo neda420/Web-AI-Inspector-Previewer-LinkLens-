@@ -18,31 +18,32 @@ export default async function UrlPage({ params }: UrlPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-6 lg:grid-cols-3">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-          <Link href="/" className="text-sm font-medium text-indigo-600">
+    <main className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-6 md:p-10 lg:grid-cols-3">
+        <section className="rounded-2xl border border-slate-700 bg-slate-900/70 p-6 shadow-2xl shadow-slate-950/50 lg:col-span-2">
+          <Link href="/" className="text-sm font-medium text-sky-300">
             ← Back
           </Link>
 
-          <p className="mt-4 break-all text-sm text-slate-500">{data.normalizedUrl}</p>
-          <h1 className="mt-2 text-2xl font-semibold">{data.title || "Untitled page"}</h1>
+          <p className="mt-4 break-all text-sm text-slate-400">{data.normalizedUrl}</p>
+          <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">{data.title || "Untitled page"}</h1>
+          {data.description ? <p className="mt-3 text-sm text-slate-300">{data.description}</p> : null}
 
-          <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">AI Preview</p>
-            <p className="mt-2 leading-7 text-slate-700">{data.summary}</p>
+          <div className="mt-5 rounded-xl border border-sky-600/30 bg-sky-500/10 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">AI Preview</p>
+            <p className="mt-2 leading-7 text-slate-200">{data.summary}</p>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
             <TrustScoreBadge trustScore={data.trustScore} risk={data.safetyFlags.risk} />
-            <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm">
+            <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200">
               <span className="font-medium">Community Rating:</span> {data.averageRating.toFixed(1)}/5 ({data.reviewCount})
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Safety Notes</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <div className="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Safety Notes</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
               {data.safetyFlags.reasons.map((reason, index) => (
                 <li key={index}>{reason}</li>
               ))}
@@ -50,9 +51,9 @@ export default async function UrlPage({ params }: UrlPageProps) {
           </div>
         </section>
 
-        <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <aside className="space-y-5 rounded-2xl border border-slate-700 bg-slate-900/70 p-6 shadow-2xl shadow-slate-950/50">
           <h2 className="text-lg font-semibold">User Reviews</h2>
-          <p className="-mt-3 text-sm text-slate-500">Community feedback timeline</p>
+          <p className="-mt-3 text-sm text-slate-400">Community feedback timeline</p>
           <ReviewForm urlId={data.id} />
           <div className="max-h-[60vh] overflow-y-auto pr-1">
             <ReviewTimeline reviews={data.reviews} />
