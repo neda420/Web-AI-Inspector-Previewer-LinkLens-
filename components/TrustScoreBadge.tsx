@@ -14,7 +14,7 @@ type TrustScoreBadgeProps = {
 export function TrustScoreBadge({ trustScore, risk }: TrustScoreBadgeProps) {
   return (
     <div className={`inline-flex items-center rounded-lg border px-3 py-2 text-sm ${riskClassByLevel[risk]}`}>
-      Trust Score: {trustScore.toFixed(1)}/5 · Risk: {risk.toUpperCase()}
+      Trust Score: {trustScore.toFixed(1)}/5 · Risk: {risk}
     </div>
   );
 }

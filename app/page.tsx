@@ -29,7 +29,7 @@ export default function Home() {
         </header>
 
         <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center py-12">
-          <p className="rounded-full border border-sky-600/40 bg-sky-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+          <p className="rounded-full border border-sky-600/40 bg-sky-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-sky-300">
             Web AI Inspector & Previewer
           </p>
           <h1 className="mt-5 text-center text-4xl font-bold tracking-tight sm:text-6xl">
