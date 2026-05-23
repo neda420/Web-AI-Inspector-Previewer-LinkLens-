@@ -1,9 +1,37 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewTimeline } from "@/components/ReviewTimeline";
+import {
+  MAX_FALLBACK_COOKIE_VALUE_LENGTH,
+  MAX_FALLBACK_DESCRIPTION_LENGTH,
+  MAX_FALLBACK_REASON_LENGTH,
+  MAX_FALLBACK_REASONS,
+  MAX_FALLBACK_SUMMARY_LENGTH,
+  MAX_FALLBACK_TITLE_LENGTH,
+  toBoundedString,
+} from "@/lib/fallback-cookie";
 import { TrustScoreBadge } from "@/components/TrustScoreBadge";
 import { getUrlWithScores } from "@/lib/store";
+import { computeTrustScore } from "@/lib/trust-score";
+import type { SafetyFlags, UrlWithScores } from "@/lib/types";
+
+function toSafeText(value: unknown, maxLength = MAX_FALLBACK_SUMMARY_LENGTH): string {
+  if (typeof value !== "string") return "";
+  return toBoundedString(value, maxLength);
+}
+
+function isValidSafetyFlags(value: unknown): value is SafetyFlags {
+  if (!value || typeof value !== "object") return false;
+  const maybeFlags = value as Partial<SafetyFlags>;
+  const validRisk = maybeFlags.risk === "safe" || maybeFlags.risk === "medium" || maybeFlags.risk === "high";
+  const validReasons =
+    Array.isArray(maybeFlags.reasons) &&
+    maybeFlags.reasons.length <= MAX_FALLBACK_REASONS &&
+    maybeFlags.reasons.every((reason) => typeof reason === "string" && reason.length <= MAX_FALLBACK_REASON_LENGTH);
+  return validRisk && validReasons;
+}
 
 type UrlPageProps = {
   params: Promise<{ id: string }>;
@@ -11,7 +39,44 @@ type UrlPageProps = {
 
 export default async function UrlPage({ params }: UrlPageProps) {
   const { id } = await params;
-  const data = await getUrlWithScores(id);
+  let data = await getUrlWithScores(id);
+
+  if (!data) {
+    const cookieStore = await cookies();
+    const cookieValue = cookieStore.get("linklens_last_result")?.value;
+
+    if (cookieValue && cookieValue.length <= MAX_FALLBACK_COOKIE_VALUE_LENGTH) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
+        if (parsed.id === id && typeof parsed.normalizedUrl === "string" && parsed.normalizedUrl && isValidSafetyFlags(parsed.safetyFlags)) {
+          const reviewCount =
+            typeof parsed.reviewCount === "number" && parsed.reviewCount >= 0 ? parsed.reviewCount : 0;
+          const averageRating =
+            typeof parsed.averageRating === "number" && parsed.averageRating >= 0 && parsed.averageRating <= 5
+              ? parsed.averageRating
+              : 0;
+          const safeReasons = parsed.safetyFlags.reasons.map((reason) =>
+            toSafeText(reason, MAX_FALLBACK_REASON_LENGTH),
+          );
+          data = {
+            id,
+            normalizedUrl: toSafeText(parsed.normalizedUrl),
+            title: toSafeText(parsed.title, MAX_FALLBACK_TITLE_LENGTH),
+            description: toSafeText(parsed.description, MAX_FALLBACK_DESCRIPTION_LENGTH),
+            summary: toSafeText(parsed.summary, MAX_FALLBACK_SUMMARY_LENGTH),
+            safetyFlags: { ...parsed.safetyFlags, reasons: safeReasons },
+            createdAt: parsed.createdAt ?? new Date().toISOString(),
+            reviews: [],
+            reviewCount,
+            averageRating,
+            trustScore: computeTrustScore(averageRating, { ...parsed.safetyFlags, reasons: safeReasons }),
+          };
+        }
+      } catch {
+        // Ignore malformed cookie and fall through to notFound.
+      }
+    }
+  }
 
   if (!data) {
     notFound();
