@@ -55,9 +55,9 @@ export default async function UrlPage({ params }: UrlPageProps) {
             typeof parsed.averageRating === "number" && parsed.averageRating >= 0 && parsed.averageRating <= 5
               ? parsed.averageRating
               : 0;
-          const safeReasons = parsed.safetyFlags.reasons
-            .slice(0, MAX_FALLBACK_REASONS)
-            .map((reason) => toSafeText(reason, MAX_FALLBACK_REASON_LENGTH));
+          const safeReasons = parsed.safetyFlags.reasons.map((reason) =>
+            toSafeText(reason, MAX_FALLBACK_REASON_LENGTH),
+          );
           data = {
             id,
             normalizedUrl: toSafeText(parsed.normalizedUrl),
