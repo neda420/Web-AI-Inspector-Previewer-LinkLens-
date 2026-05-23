@@ -7,6 +7,14 @@ import { assertPublicUrl, normalizeUrl } from "@/lib/url";
 
 // Keep fallback data short-lived to reduce stale results exposure.
 const FALLBACK_COOKIE_TTL_SECONDS = 10 * 60;
+const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 3800;
+const MAX_FALLBACK_TITLE_LENGTH = 200;
+const MAX_FALLBACK_DESCRIPTION_LENGTH = 400;
+const MAX_FALLBACK_SUMMARY_LENGTH = 2000;
+
+function toBoundedString(value: string, maxLength: number): string {
+  return value.length > maxLength ? value.slice(0, maxLength) : value;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,21 +44,25 @@ export async function POST(req: NextRequest) {
     const fallbackRecord: UrlRecord = {
       id: record.id,
       normalizedUrl: record.normalizedUrl,
-      title: record.title,
-      description: record.description,
-      summary: record.summary,
+      title: toBoundedString(record.title, MAX_FALLBACK_TITLE_LENGTH),
+      description: toBoundedString(record.description, MAX_FALLBACK_DESCRIPTION_LENGTH),
+      summary: toBoundedString(record.summary, MAX_FALLBACK_SUMMARY_LENGTH),
       safetyFlags: record.safetyFlags,
       createdAt: record.createdAt,
     };
 
     const response = NextResponse.json(record);
-    response.cookies.set("linklens_last_result", encodeURIComponent(JSON.stringify(fallbackRecord)), {
-      path: "/",
-      maxAge: FALLBACK_COOKIE_TTL_SECONDS,
-      sameSite: "lax",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
+    const encodedFallback = encodeURIComponent(JSON.stringify(fallbackRecord));
+
+    if (encodedFallback.length <= MAX_FALLBACK_COOKIE_VALUE_LENGTH) {
+      response.cookies.set("linklens_last_result", encodedFallback, {
+        path: "/",
+        maxAge: FALLBACK_COOKIE_TTL_SECONDS,
+        sameSite: "lax",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
 
     return response;
   } catch (error: unknown) {

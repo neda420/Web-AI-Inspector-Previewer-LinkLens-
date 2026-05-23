@@ -8,14 +8,25 @@ import { getUrlWithScores } from "@/lib/store";
 import { computeTrustScore } from "@/lib/trust-score";
 import type { SafetyFlags, UrlWithScores } from "@/lib/types";
 
-// Most browsers enforce a ~4KB max cookie size.
-const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 4096;
+// Keep under common browser cookie limits including key/metadata overhead.
+const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 3800;
+const MAX_FALLBACK_TEXT_LENGTH = 2000;
+const MAX_FALLBACK_REASONS = 20;
+const MAX_FALLBACK_REASON_LENGTH = 200;
+
+function toSafeText(value: unknown, maxLength = MAX_FALLBACK_TEXT_LENGTH): string {
+  if (typeof value !== "string") return "";
+  return value.length > maxLength ? value.slice(0, maxLength) : value;
+}
 
 function isValidSafetyFlags(value: unknown): value is SafetyFlags {
   if (!value || typeof value !== "object") return false;
   const maybeFlags = value as Partial<SafetyFlags>;
   const validRisk = maybeFlags.risk === "safe" || maybeFlags.risk === "medium" || maybeFlags.risk === "high";
-  return validRisk && Array.isArray(maybeFlags.reasons);
+  const validReasons =
+    Array.isArray(maybeFlags.reasons) &&
+    maybeFlags.reasons.every((reason) => typeof reason === "string" && reason.length <= MAX_FALLBACK_REASON_LENGTH);
+  return validRisk && validReasons;
 }
 
 type UrlPageProps = {
@@ -34,20 +45,24 @@ export default async function UrlPage({ params }: UrlPageProps) {
       try {
         const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
         if (parsed.id === id && isValidSafetyFlags(parsed.safetyFlags)) {
-          const reviewCount = typeof parsed.reviewCount === "number" ? parsed.reviewCount : 0;
-          const averageRating = typeof parsed.averageRating === "number" ? parsed.averageRating : 0;
+          const reviewCount = typeof parsed.reviewCount === "number" && parsed.reviewCount > 0 ? parsed.reviewCount : 0;
+          const averageRating =
+            reviewCount > 0 && typeof parsed.averageRating === "number" ? parsed.averageRating : 0;
+          const safeReasons = parsed.safetyFlags.reasons
+            .slice(0, MAX_FALLBACK_REASONS)
+            .map((reason) => toSafeText(reason, MAX_FALLBACK_REASON_LENGTH));
           data = {
             id,
-            normalizedUrl: parsed.normalizedUrl ?? "",
-            title: parsed.title ?? "",
-            description: parsed.description ?? "",
-            summary: parsed.summary ?? "",
-            safetyFlags: parsed.safetyFlags,
+            normalizedUrl: toSafeText(parsed.normalizedUrl),
+            title: toSafeText(parsed.title, 200),
+            description: toSafeText(parsed.description, 400),
+            summary: toSafeText(parsed.summary),
+            safetyFlags: { ...parsed.safetyFlags, reasons: safeReasons },
             createdAt: parsed.createdAt ?? new Date().toISOString(),
-            reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
+            reviews: [],
             reviewCount,
             averageRating,
-            trustScore: computeTrustScore(averageRating, parsed.safetyFlags),
+            trustScore: computeTrustScore(averageRating, { ...parsed.safetyFlags, reasons: safeReasons }),
           };
         }
       } catch {
