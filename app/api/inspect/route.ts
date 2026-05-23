@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { classifySafety, summarizeWithAI } from "@/lib/ai";
 import { extractText, fetchPageHtml } from "@/lib/scraper";
 import { upsertUrlRecord } from "@/lib/store";
+import type { UrlRecord } from "@/lib/types";
 import { assertPublicUrl, normalizeUrl } from "@/lib/url";
 
 export async function POST(req: NextRequest) {
@@ -29,7 +30,26 @@ export async function POST(req: NextRequest) {
       safetyFlags,
     });
 
-    return NextResponse.json(record);
+    const fallbackRecord: UrlRecord = {
+      id: record.id,
+      normalizedUrl: record.normalizedUrl,
+      title: record.title,
+      description: record.description,
+      summary: record.summary,
+      safetyFlags: record.safetyFlags,
+      createdAt: record.createdAt,
+    };
+
+    const response = NextResponse.json(record);
+    response.cookies.set("linklens_last_result", encodeURIComponent(JSON.stringify(fallbackRecord)), {
+      path: "/",
+      maxAge: 600,
+      sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return response;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to inspect URL.";
     return NextResponse.json({ error: message }, { status: 400 });
