@@ -33,7 +33,8 @@ export function UrlSearchBar() {
 
       if (typeof document !== "undefined") {
         const payload = encodeURIComponent(JSON.stringify(data));
-        document.cookie = `linklens_last_result=${payload}; Path=/; Max-Age=600; SameSite=Lax`;
+        const secure = window.location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = `linklens_last_result=${payload}; Path=/; Max-Age=600; SameSite=Lax${secure}`;
       }
 
       router.push(`/url/${data.id}`);

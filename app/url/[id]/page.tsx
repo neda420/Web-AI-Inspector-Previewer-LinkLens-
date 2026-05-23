@@ -24,7 +24,8 @@ export default async function UrlPage({ params }: UrlPageProps) {
       try {
         const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
         if (parsed.id === id && parsed.safetyFlags) {
-          const averageRating = 0;
+          const reviewCount = typeof parsed.reviewCount === "number" ? parsed.reviewCount : 0;
+          const averageRating = typeof parsed.averageRating === "number" ? parsed.averageRating : 0;
           data = {
             id,
             normalizedUrl: parsed.normalizedUrl ?? "",
@@ -33,8 +34,8 @@ export default async function UrlPage({ params }: UrlPageProps) {
             summary: parsed.summary ?? "",
             safetyFlags: parsed.safetyFlags,
             createdAt: parsed.createdAt ?? new Date().toISOString(),
-            reviews: [],
-            reviewCount: 0,
+            reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
+            reviewCount,
             averageRating,
             trustScore: computeTrustScore(averageRating, parsed.safetyFlags),
           };
