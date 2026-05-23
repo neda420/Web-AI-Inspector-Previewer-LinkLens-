@@ -5,7 +5,8 @@ import { upsertUrlRecord } from "@/lib/store";
 import type { UrlRecord } from "@/lib/types";
 import { assertPublicUrl, normalizeUrl } from "@/lib/url";
 
-const FALLBACK_COOKIE_TTL_SECONDS = 600;
+// Keep fallback data short-lived to reduce stale results exposure.
+const FALLBACK_COOKIE_TTL_SECONDS = 10 * 60;
 
 export async function POST(req: NextRequest) {
   try {

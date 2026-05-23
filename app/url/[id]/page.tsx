@@ -8,6 +8,7 @@ import { getUrlWithScores } from "@/lib/store";
 import { computeTrustScore } from "@/lib/trust-score";
 import type { SafetyFlags, UrlWithScores } from "@/lib/types";
 
+// Most browsers enforce a ~4KB max cookie size.
 const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 4096;
 
 function isValidSafetyFlags(value: unknown): value is SafetyFlags {
