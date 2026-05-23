@@ -31,6 +31,11 @@ export function UrlSearchBar() {
         throw new Error(data?.error ?? "Failed to inspect URL.");
       }
 
+      if (typeof document !== "undefined") {
+        const payload = encodeURIComponent(JSON.stringify(data));
+        document.cookie = `linklens_last_result=${payload}; Path=/; Max-Age=600; SameSite=Lax`;
+      }
+
       router.push(`/url/${data.id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

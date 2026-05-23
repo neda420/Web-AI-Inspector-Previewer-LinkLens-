@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewTimeline } from "@/components/ReviewTimeline";
 import { TrustScoreBadge } from "@/components/TrustScoreBadge";
 import { getUrlWithScores } from "@/lib/store";
+import { computeTrustScore } from "@/lib/trust-score";
+import type { UrlWithScores } from "@/lib/types";
 
 type UrlPageProps = {
   params: Promise<{ id: string }>;
@@ -11,7 +14,36 @@ type UrlPageProps = {
 
 export default async function UrlPage({ params }: UrlPageProps) {
   const { id } = await params;
-  const data = await getUrlWithScores(id);
+  let data = await getUrlWithScores(id);
+
+  if (!data) {
+    const cookieStore = await cookies();
+    const cookieValue = cookieStore.get("linklens_last_result")?.value;
+
+    if (cookieValue) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
+        if (parsed.id === id && parsed.safetyFlags) {
+          const averageRating = 0;
+          data = {
+            id,
+            normalizedUrl: parsed.normalizedUrl ?? "",
+            title: parsed.title ?? "",
+            description: parsed.description ?? "",
+            summary: parsed.summary ?? "",
+            safetyFlags: parsed.safetyFlags,
+            createdAt: parsed.createdAt ?? new Date().toISOString(),
+            reviews: [],
+            reviewCount: 0,
+            averageRating,
+            trustScore: computeTrustScore(averageRating, parsed.safetyFlags),
+          };
+        }
+      } catch {
+        // Ignore malformed cookie and fall through to notFound.
+      }
+    }
+  }
 
   if (!data) {
     notFound();
