@@ -11,6 +11,8 @@ const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 3800;
 const MAX_FALLBACK_TITLE_LENGTH = 200;
 const MAX_FALLBACK_DESCRIPTION_LENGTH = 400;
 const MAX_FALLBACK_SUMMARY_LENGTH = 2000;
+const MAX_FALLBACK_REASONS = 20;
+const MAX_FALLBACK_REASON_LENGTH = 200;
 
 function toBoundedString(value: string, maxLength: number): string {
   return value.length > maxLength ? value.slice(0, maxLength) : value;
@@ -47,7 +49,12 @@ export async function POST(req: NextRequest) {
       title: toBoundedString(record.title, MAX_FALLBACK_TITLE_LENGTH),
       description: toBoundedString(record.description, MAX_FALLBACK_DESCRIPTION_LENGTH),
       summary: toBoundedString(record.summary, MAX_FALLBACK_SUMMARY_LENGTH),
-      safetyFlags: record.safetyFlags,
+      safetyFlags: {
+        ...record.safetyFlags,
+        reasons: record.safetyFlags.reasons
+          .slice(0, MAX_FALLBACK_REASONS)
+          .map((reason) => toBoundedString(reason, MAX_FALLBACK_REASON_LENGTH)),
+      },
       createdAt: record.createdAt,
     };
 

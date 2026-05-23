@@ -25,6 +25,7 @@ function isValidSafetyFlags(value: unknown): value is SafetyFlags {
   const validRisk = maybeFlags.risk === "safe" || maybeFlags.risk === "medium" || maybeFlags.risk === "high";
   const validReasons =
     Array.isArray(maybeFlags.reasons) &&
+    maybeFlags.reasons.length <= MAX_FALLBACK_REASONS &&
     maybeFlags.reasons.every((reason) => typeof reason === "string" && reason.length <= MAX_FALLBACK_REASON_LENGTH);
   return validRisk && validReasons;
 }
@@ -44,10 +45,13 @@ export default async function UrlPage({ params }: UrlPageProps) {
     if (cookieValue && cookieValue.length <= MAX_FALLBACK_COOKIE_VALUE_LENGTH) {
       try {
         const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
-        if (parsed.id === id && isValidSafetyFlags(parsed.safetyFlags)) {
-          const reviewCount = typeof parsed.reviewCount === "number" && parsed.reviewCount > 0 ? parsed.reviewCount : 0;
+        if (parsed.id === id && typeof parsed.normalizedUrl === "string" && parsed.normalizedUrl && isValidSafetyFlags(parsed.safetyFlags)) {
+          const reviewCount =
+            typeof parsed.reviewCount === "number" && parsed.reviewCount >= 0 ? parsed.reviewCount : 0;
           const averageRating =
-            reviewCount > 0 && typeof parsed.averageRating === "number" ? parsed.averageRating : 0;
+            typeof parsed.averageRating === "number" && parsed.averageRating >= 0 && parsed.averageRating <= 5
+              ? parsed.averageRating
+              : 0;
           const safeReasons = parsed.safetyFlags.reasons
             .slice(0, MAX_FALLBACK_REASONS)
             .map((reason) => toSafeText(reason, MAX_FALLBACK_REASON_LENGTH));
