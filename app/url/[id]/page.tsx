@@ -6,7 +6,16 @@ import { ReviewTimeline } from "@/components/ReviewTimeline";
 import { TrustScoreBadge } from "@/components/TrustScoreBadge";
 import { getUrlWithScores } from "@/lib/store";
 import { computeTrustScore } from "@/lib/trust-score";
-import type { UrlWithScores } from "@/lib/types";
+import type { SafetyFlags, UrlWithScores } from "@/lib/types";
+
+const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 4096;
+
+function isValidSafetyFlags(value: unknown): value is SafetyFlags {
+  if (!value || typeof value !== "object") return false;
+  const maybeFlags = value as Partial<SafetyFlags>;
+  const validRisk = maybeFlags.risk === "safe" || maybeFlags.risk === "medium" || maybeFlags.risk === "high";
+  return validRisk && Array.isArray(maybeFlags.reasons);
+}
 
 type UrlPageProps = {
   params: Promise<{ id: string }>;
@@ -20,10 +29,10 @@ export default async function UrlPage({ params }: UrlPageProps) {
     const cookieStore = await cookies();
     const cookieValue = cookieStore.get("linklens_last_result")?.value;
 
-    if (cookieValue) {
+    if (cookieValue && cookieValue.length <= MAX_FALLBACK_COOKIE_VALUE_LENGTH) {
       try {
         const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
-        if (parsed.id === id && parsed.safetyFlags) {
+        if (parsed.id === id && isValidSafetyFlags(parsed.safetyFlags)) {
           const reviewCount = typeof parsed.reviewCount === "number" ? parsed.reviewCount : 0;
           const averageRating = typeof parsed.averageRating === "number" ? parsed.averageRating : 0;
           data = {

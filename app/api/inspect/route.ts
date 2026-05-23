@@ -5,6 +5,8 @@ import { upsertUrlRecord } from "@/lib/store";
 import type { UrlRecord } from "@/lib/types";
 import { assertPublicUrl, normalizeUrl } from "@/lib/url";
 
+const FALLBACK_COOKIE_TTL_SECONDS = 600;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json(record);
     response.cookies.set("linklens_last_result", encodeURIComponent(JSON.stringify(fallbackRecord)), {
       path: "/",
-      maxAge: 600,
+      maxAge: FALLBACK_COOKIE_TTL_SECONDS,
       sameSite: "lax",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
