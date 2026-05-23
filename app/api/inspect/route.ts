@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { classifySafety, summarizeWithAI } from "@/lib/ai";
+import {
+  FALLBACK_COOKIE_TTL_SECONDS,
+  MAX_FALLBACK_COOKIE_VALUE_LENGTH,
+  MAX_FALLBACK_DESCRIPTION_LENGTH,
+  MAX_FALLBACK_REASON_LENGTH,
+  MAX_FALLBACK_REASONS,
+  MAX_FALLBACK_SUMMARY_LENGTH,
+  MAX_FALLBACK_TITLE_LENGTH,
+  toBoundedString,
+} from "@/lib/fallback-cookie";
 import { extractText, fetchPageHtml } from "@/lib/scraper";
 import { upsertUrlRecord } from "@/lib/store";
 import type { UrlRecord } from "@/lib/types";
 import { assertPublicUrl, normalizeUrl } from "@/lib/url";
-
-// Keep fallback data short-lived to reduce stale results exposure.
-const FALLBACK_COOKIE_TTL_SECONDS = 10 * 60;
-const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 3800;
-const MAX_FALLBACK_TITLE_LENGTH = 200;
-const MAX_FALLBACK_DESCRIPTION_LENGTH = 400;
-const MAX_FALLBACK_SUMMARY_LENGTH = 2000;
-const MAX_FALLBACK_REASONS = 20;
-const MAX_FALLBACK_REASON_LENGTH = 200;
-
-function toBoundedString(value: string, maxLength: number): string {
-  return value.length > maxLength ? value.slice(0, maxLength) : value;
-}
 
 export async function POST(req: NextRequest) {
   try {

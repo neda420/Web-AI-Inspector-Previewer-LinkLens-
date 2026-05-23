@@ -3,20 +3,23 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewTimeline } from "@/components/ReviewTimeline";
+import {
+  MAX_FALLBACK_COOKIE_VALUE_LENGTH,
+  MAX_FALLBACK_DESCRIPTION_LENGTH,
+  MAX_FALLBACK_REASON_LENGTH,
+  MAX_FALLBACK_REASONS,
+  MAX_FALLBACK_SUMMARY_LENGTH,
+  MAX_FALLBACK_TITLE_LENGTH,
+  toBoundedString,
+} from "@/lib/fallback-cookie";
 import { TrustScoreBadge } from "@/components/TrustScoreBadge";
 import { getUrlWithScores } from "@/lib/store";
 import { computeTrustScore } from "@/lib/trust-score";
 import type { SafetyFlags, UrlWithScores } from "@/lib/types";
 
-// Keep under common browser cookie limits including key/metadata overhead.
-const MAX_FALLBACK_COOKIE_VALUE_LENGTH = 3800;
-const MAX_FALLBACK_TEXT_LENGTH = 2000;
-const MAX_FALLBACK_REASONS = 20;
-const MAX_FALLBACK_REASON_LENGTH = 200;
-
-function toSafeText(value: unknown, maxLength = MAX_FALLBACK_TEXT_LENGTH): string {
+function toSafeText(value: unknown, maxLength = MAX_FALLBACK_SUMMARY_LENGTH): string {
   if (typeof value !== "string") return "";
-  return value.length > maxLength ? value.slice(0, maxLength) : value;
+  return toBoundedString(value, maxLength);
 }
 
 function isValidSafetyFlags(value: unknown): value is SafetyFlags {
@@ -58,9 +61,9 @@ export default async function UrlPage({ params }: UrlPageProps) {
           data = {
             id,
             normalizedUrl: toSafeText(parsed.normalizedUrl),
-            title: toSafeText(parsed.title, 200),
-            description: toSafeText(parsed.description, 400),
-            summary: toSafeText(parsed.summary),
+            title: toSafeText(parsed.title, MAX_FALLBACK_TITLE_LENGTH),
+            description: toSafeText(parsed.description, MAX_FALLBACK_DESCRIPTION_LENGTH),
+            summary: toSafeText(parsed.summary, MAX_FALLBACK_SUMMARY_LENGTH),
             safetyFlags: { ...parsed.safetyFlags, reasons: safeReasons },
             createdAt: parsed.createdAt ?? new Date().toISOString(),
             reviews: [],
