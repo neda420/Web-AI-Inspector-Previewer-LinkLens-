@@ -6,6 +6,10 @@ import { ReviewTimeline } from "@/components/ReviewTimeline";
 import {
   MAX_FALLBACK_COOKIE_VALUE_LENGTH,
   MAX_FALLBACK_DESCRIPTION_LENGTH,
+  MAX_FALLBACK_REVIEW_COOKIE_PREFIX,
+  MAX_FALLBACK_REVIEW_NAME_LENGTH,
+  MAX_FALLBACK_REVIEW_TEXT_LENGTH,
+  MAX_FALLBACK_REVIEWS,
   MAX_FALLBACK_REASON_LENGTH,
   MAX_FALLBACK_REASONS,
   MAX_FALLBACK_SUMMARY_LENGTH,
@@ -15,7 +19,7 @@ import {
 import { TrustScoreBadge } from "@/components/TrustScoreBadge";
 import { getUrlWithScores } from "@/lib/store";
 import { computeTrustScore } from "@/lib/trust-score";
-import type { SafetyFlags, UrlWithScores } from "@/lib/types";
+import type { Review, SafetyFlags, UrlWithScores } from "@/lib/types";
 
 function toSafeText(value: unknown, maxLength = MAX_FALLBACK_SUMMARY_LENGTH): string {
   if (typeof value !== "string") return "";
@@ -31,6 +35,42 @@ function isValidSafetyFlags(value: unknown): value is SafetyFlags {
     maybeFlags.reasons.length <= MAX_FALLBACK_REASONS &&
     maybeFlags.reasons.every((reason) => typeof reason === "string" && reason.length <= MAX_FALLBACK_REASON_LENGTH);
   return validRisk && validReasons;
+}
+
+function isValidReview(value: unknown, urlId: string): value is Review {
+  if (!value || typeof value !== "object") return false;
+  const maybeReview = value as Partial<Review>;
+  return (
+    typeof maybeReview.id === "string" &&
+    typeof maybeReview.urlId === "string" &&
+    maybeReview.urlId === urlId &&
+    typeof maybeReview.userName === "string" &&
+    Number.isInteger(maybeReview.rating) &&
+    maybeReview.rating >= 1 &&
+    maybeReview.rating <= 5 &&
+    typeof maybeReview.text === "string" &&
+    typeof maybeReview.createdAt === "string" &&
+    typeof maybeReview.updatedAt === "string"
+  );
+}
+
+function parseFallbackReviews(value: string | undefined, urlId: string): Review[] {
+  if (!value || value.length > MAX_FALLBACK_COOKIE_VALUE_LENGTH) return [];
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value));
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is Review => isValidReview(item, urlId))
+      .slice(0, MAX_FALLBACK_REVIEWS)
+      .map((review) => ({
+        ...review,
+        userName: toSafeText(review.userName, MAX_FALLBACK_REVIEW_NAME_LENGTH),
+        text: toSafeText(review.text, MAX_FALLBACK_REVIEW_TEXT_LENGTH),
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch {
+    return [];
+  }
 }
 
 type UrlPageProps = {
@@ -49,12 +89,21 @@ export default async function UrlPage({ params }: UrlPageProps) {
       try {
         const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
         if (parsed.id === id && typeof parsed.normalizedUrl === "string" && parsed.normalizedUrl && isValidSafetyFlags(parsed.safetyFlags)) {
+          const fallbackReviewCookie = cookieStore.get(`${MAX_FALLBACK_REVIEW_COOKIE_PREFIX}${id}`)?.value;
+          const fallbackReviews = parseFallbackReviews(fallbackReviewCookie, id);
+          const fallbackReviewCount = fallbackReviews.length;
+          const fallbackAverageRating = fallbackReviewCount
+            ? Number((fallbackReviews.reduce((sum, review) => sum + review.rating, 0) / fallbackReviewCount).toFixed(2))
+            : 0;
           const reviewCount =
-            typeof parsed.reviewCount === "number" && parsed.reviewCount >= 0 ? parsed.reviewCount : 0;
+            fallbackReviewCount ||
+            (typeof parsed.reviewCount === "number" && parsed.reviewCount >= 0 ? parsed.reviewCount : 0);
           const averageRating =
-            typeof parsed.averageRating === "number" && parsed.averageRating >= 0 && parsed.averageRating <= 5
-              ? parsed.averageRating
-              : 0;
+            fallbackReviewCount
+              ? fallbackAverageRating
+              : typeof parsed.averageRating === "number" && parsed.averageRating >= 0 && parsed.averageRating <= 5
+                ? parsed.averageRating
+                : 0;
           const safeReasons = parsed.safetyFlags.reasons.map((reason) =>
             toSafeText(reason, MAX_FALLBACK_REASON_LENGTH),
           );
@@ -66,7 +115,7 @@ export default async function UrlPage({ params }: UrlPageProps) {
             summary: toSafeText(parsed.summary, MAX_FALLBACK_SUMMARY_LENGTH),
             safetyFlags: { ...parsed.safetyFlags, reasons: safeReasons },
             createdAt: parsed.createdAt ?? new Date().toISOString(),
-            reviews: [],
+            reviews: fallbackReviews,
             reviewCount,
             averageRating,
             trustScore: computeTrustScore(averageRating, { ...parsed.safetyFlags, reasons: safeReasons }),

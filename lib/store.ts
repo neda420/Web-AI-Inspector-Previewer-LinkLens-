@@ -171,10 +171,6 @@ export async function saveReview(input: {
   }
 
   if (!hasSupabaseConfig()) {
-    if (!memoryUrlRecordsById.has(input.urlId)) {
-      throw new Error("Valid urlId is required.");
-    }
-
     const now = new Date().toISOString();
     const urlReviews = memoryReviewsByUrlId.get(input.urlId) ?? new Map<string, Review>();
     const existing = urlReviews.get(input.userName);
