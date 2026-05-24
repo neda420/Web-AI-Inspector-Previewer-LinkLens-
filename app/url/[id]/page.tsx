@@ -40,14 +40,16 @@ function isValidSafetyFlags(value: unknown): value is SafetyFlags {
 function isValidReview(value: unknown, urlId: string): value is Review {
   if (!value || typeof value !== "object") return false;
   const maybeReview = value as Partial<Review>;
+  const rating = maybeReview.rating;
   return (
     typeof maybeReview.id === "string" &&
     typeof maybeReview.urlId === "string" &&
     maybeReview.urlId === urlId &&
     typeof maybeReview.userName === "string" &&
-    Number.isInteger(maybeReview.rating) &&
-    maybeReview.rating >= 1 &&
-    maybeReview.rating <= 5 &&
+    typeof rating === "number" &&
+    Number.isInteger(rating) &&
+    rating >= 1 &&
+    rating <= 5 &&
     typeof maybeReview.text === "string" &&
     typeof maybeReview.createdAt === "string" &&
     typeof maybeReview.updatedAt === "string"
