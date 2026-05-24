@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  FALLBACK_REVIEW_COOKIE_PREFIX,
   FALLBACK_COOKIE_TTL_SECONDS,
   MAX_FALLBACK_COOKIE_VALUE_LENGTH,
-  MAX_FALLBACK_REVIEW_COOKIE_PREFIX,
   MAX_FALLBACK_REVIEW_NAME_LENGTH,
   MAX_FALLBACK_REVIEW_TEXT_LENGTH,
   MAX_FALLBACK_REVIEWS,
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       const reviews = (await listReviews(urlId)).slice(0, MAX_FALLBACK_REVIEWS).map(toFallbackReview);
       const encoded = encodeURIComponent(JSON.stringify(reviews));
       if (encoded.length <= MAX_FALLBACK_COOKIE_VALUE_LENGTH) {
-        response.cookies.set(`${MAX_FALLBACK_REVIEW_COOKIE_PREFIX}${urlId}`, encoded, {
+        response.cookies.set(`${FALLBACK_REVIEW_COOKIE_PREFIX}${urlId}`, encoded, {
           path: "/",
           maxAge: FALLBACK_COOKIE_TTL_SECONDS,
           sameSite: "lax",

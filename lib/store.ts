@@ -1,4 +1,5 @@
 import { getSupabase, hasSupabaseConfig } from "@/lib/supabase";
+import { computeAverageRating } from "@/lib/reviews";
 import { computeTrustScore } from "@/lib/trust-score";
 import type { Review, SafetyFlags, UrlRecord, UrlWithScores } from "@/lib/types";
 
@@ -225,9 +226,7 @@ export async function getUrlWithScores(urlId: string): Promise<UrlWithScores | n
 
   const reviews = await listReviews(urlId);
   const reviewCount = reviews.length;
-  const averageRating = reviewCount
-    ? Number((reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(2))
-    : 0;
+  const averageRating = computeAverageRating(reviews);
 
   return {
     ...url,

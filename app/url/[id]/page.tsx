@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewTimeline } from "@/components/ReviewTimeline";
 import {
+  FALLBACK_REVIEW_COOKIE_PREFIX,
   MAX_FALLBACK_COOKIE_VALUE_LENGTH,
   MAX_FALLBACK_DESCRIPTION_LENGTH,
-  MAX_FALLBACK_REVIEW_COOKIE_PREFIX,
   MAX_FALLBACK_REVIEW_NAME_LENGTH,
   MAX_FALLBACK_REVIEW_TEXT_LENGTH,
   MAX_FALLBACK_REVIEWS,
@@ -17,6 +17,7 @@ import {
   toBoundedString,
 } from "@/lib/fallback-cookie";
 import { TrustScoreBadge } from "@/components/TrustScoreBadge";
+import { computeAverageRating } from "@/lib/reviews";
 import { getUrlWithScores } from "@/lib/store";
 import { computeTrustScore } from "@/lib/trust-score";
 import type { Review, SafetyFlags, UrlWithScores } from "@/lib/types";
@@ -91,12 +92,10 @@ export default async function UrlPage({ params }: UrlPageProps) {
       try {
         const parsed = JSON.parse(decodeURIComponent(cookieValue)) as Partial<UrlWithScores>;
         if (parsed.id === id && typeof parsed.normalizedUrl === "string" && parsed.normalizedUrl && isValidSafetyFlags(parsed.safetyFlags)) {
-          const fallbackReviewCookie = cookieStore.get(`${MAX_FALLBACK_REVIEW_COOKIE_PREFIX}${id}`)?.value;
+          const fallbackReviewCookie = cookieStore.get(`${FALLBACK_REVIEW_COOKIE_PREFIX}${id}`)?.value;
           const fallbackReviews = parseFallbackReviews(fallbackReviewCookie, id);
           const fallbackReviewCount = fallbackReviews.length;
-          const fallbackAverageRating = fallbackReviewCount
-            ? Number((fallbackReviews.reduce((sum, review) => sum + review.rating, 0) / fallbackReviewCount).toFixed(2))
-            : 0;
+          const fallbackAverageRating = computeAverageRating(fallbackReviews);
           const reviewCount =
             fallbackReviewCount ||
             (typeof parsed.reviewCount === "number" && parsed.reviewCount >= 0 ? parsed.reviewCount : 0);
