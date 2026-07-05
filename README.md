@@ -4,8 +4,6 @@ Understand any website **before you open it**.
 
 LinkLens analyzes a submitted URL, extracts meaningful page content, generates an AI-style preview summary, evaluates safety signals, and blends them with community reviews into one trust score.
 
----
-
 ## Table of Contents
 
 - [Why LinkLens](#why-linklens)
