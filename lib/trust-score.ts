@@ -12,5 +12,9 @@ function safetyToScore(flags: SafetyFlags): number {
 }
 
 export function computeTrustScore(averageRating: number, safetyFlags: SafetyFlags): number {
-  return Number((0.7 * averageRating + 0.3 * safetyToScore(safetyFlags)).toFixed(2));
+  const safetyScore = safetyToScore(safetyFlags);
+  if (averageRating <= 0) {
+    return Number(safetyScore.toFixed(2));
+  }
+  return Number((0.7 * averageRating + 0.3 * safetyScore).toFixed(2));
 }
