@@ -9,7 +9,6 @@ type ReviewFormProps = {
 
 export function ReviewForm({ urlId }: ReviewFormProps) {
   const router = useRouter();
-  const [userName, setUserName] = useState("");
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -23,15 +22,10 @@ export function ReviewForm({ urlId }: ReviewFormProps) {
     setLoading(true);
 
     try {
-      const normalizedName = userName.trim();
-      if (!normalizedName) {
-        throw new Error("Name is required.");
-      }
-
       const response = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urlId, userName: normalizedName, rating, text }),
+        body: JSON.stringify({ urlId, rating, text }),
       });
 
       const data = await response.json();
@@ -52,14 +46,7 @@ export function ReviewForm({ urlId }: ReviewFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-3 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
       <h3 className="text-sm font-semibold text-slate-100">Add or update your review</h3>
-
-      <input
-        required
-        placeholder="Your name"
-        value={userName}
-        onChange={(event) => setUserName(event.target.value)}
-        className="h-10 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 text-sm text-slate-100"
-      />
+      <p className="text-xs text-slate-400">Reviews are stored anonymously from your browser session.</p>
 
       <div>
         <label htmlFor="rating" className="mb-1 block text-xs font-medium text-slate-300">
