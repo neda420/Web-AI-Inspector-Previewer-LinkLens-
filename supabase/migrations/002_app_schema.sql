@@ -1,5 +1,5 @@
 -- Standalone tables that match the application's TypeScript types.
--- No Supabase auth dependency — reviews are identified by user_name (text).
+-- No Supabase auth dependency — reviews are identified by user_name (text).    
 
 create table if not exists public.url_records (
   id uuid primary key default gen_random_uuid(),
