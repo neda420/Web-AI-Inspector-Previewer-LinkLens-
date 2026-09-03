@@ -1,7 +1,6 @@
 # LinkLens
 
 LinkLens is a Next.js web application that inspects a URL before you open it and presents:
-
 - AI-generated page preview
 - Safety risk signals
 - Community trust score and anonymous reviews
